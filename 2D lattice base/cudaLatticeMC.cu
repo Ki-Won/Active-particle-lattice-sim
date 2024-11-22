@@ -156,22 +156,14 @@ int main(int argc, char *argv[])
             for (int subrep = 0; subrep < 5; subrep++){
             
                 int which_sub = (int) (rand_unif() * 5);
-                //int which_sub = 0;
             
                 potential_cal<<<nBlocks, nThreads>>>(Lx_size, Ly_size, ptlsNum, F_rep, F_adh_r, F_adh_g, dl, speed_r, speed_g, Dt, devLattice);
                 move_can<<<nBlocks, nThreads>>>(devStates, Lx_size, Ly_size, ptlsNum, F_rep, F_adh_r, F_adh_g, speed_r, speed_g, dt, dl, Dt, devLattice, which_sub);
                 
                 cudaDeviceSynchronize();
-                
-                //candidate<<<nBlocks, nThreads>>>(Lx_size, Ly_size, ptlsNum, devLattice, which_sub);
+
                 copyLattice<<<nBlocks, nThreads>>>(Lx_size, Ly_size, devLattice, tempdevLattice);
-                
-                cudaDeviceSynchronize();
-                //cudaMemcpy(temphostLattice, devLattice, memSize, cudaMemcpyDeviceToHost);
-                //cudaMemcpy(tempdevLattice, temphostLattice, memSize, cudaMemcpyHostToDevice);
-               
-                
-                //exchange_cell<<<nBlocks, nThreads>>>(Lx_size, Ly_size, devLattice, tempdevLattice, which_sub);
+
                 create_cell<<<nBlocks, nThreads>>>(Lx_size, Ly_size, devLattice, tempdevLattice, which_sub);
                 cudaDeviceSynchronize();
                 delete_cell<<<nBlocks, nThreads>>>(Lx_size, Ly_size, devLattice, tempdevLattice, which_sub);
@@ -185,8 +177,7 @@ int main(int argc, char *argv[])
                 
             
                 if (t%250 == 0){
-                
-                    //cudaMemcpy(hostLattice, devLattice, memSize, cudaMemcpyDeviceToHost);
+
                     char state_filename[200];
                     sprintf(state_filename, "%s/state_t_%d.txt", folder_name, t);
                     save_current_state(hostLattice, Lx_size, Ly_size, state_filename);
@@ -220,31 +211,6 @@ int main(int argc, char *argv[])
                         char state_filename[200];
                         sprintf(state_filename, "%s/state_t_%d.txt", folder_name, t);
                         save_current_state(hostLattice, Lx_size, Ly_size, state_filename);
-
-                
-                        //<<<201,201>>>(devLattice, Lx_size, Ly_size, dev_rho_tilde_Re, dev_rho_tilde_Im);
-
-                        //cudaDeviceSynchronize();
-                        
-                        //cudaMemcpy(host_rho_tilde_Re, dev_rho_tilde_Re, 201 * 201 * sizeof(float), cudaMemcpyDeviceToHost);
-                        //cudaMemcpy(host_rho_tilde_Im, dev_rho_tilde_Im, 201 * 201 * sizeof(float), cudaMemcpyDeviceToHost);
-                        
-                        //cudaDeviceSynchronize();
-                        
-                        //char len_filename[200];
-
-                        //sprintf(len_filename, "%s/t_%d.txt", folder_name, t);
-                        //FILE *fp = fopen(len_filename, "w");
-                        //for (int i = 0; i < 201 * 201; i++){
-                        //        fprintf(fp, "%f ", host_rho_tilde_Re[i]);
-                        //}
-                        //fprintf(fp, "\n");
-                        //for (int i = 0; i < 201 * 201; i++){
-                        //        fprintf(fp, "%f ", host_rho_tilde_Im[i]);
-                        //}
-                        //fprintf(fp, "\n");
-                        //fclose(fp);
-
 
                         if (T < 2048){
                                 T *= 2;

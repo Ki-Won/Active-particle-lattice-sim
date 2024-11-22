@@ -9,6 +9,10 @@ The code measures the rectified current and entropy production.
 
 2D pressure:
 The thread is allocated for each particle.
-1n 2D space, simulate non-interacting Active-Brownina particles(ABPs).
+In 2D space, simulate non-interacting Active-Brownina particles(ABPs).
 The space is periodic in y-direction and stiff potential is applied at both ends in x-direction.
 The code measures exerted pressure to the potential from ABPs.
+
+2D lattice base:
+The thread is allocated for each lattice.
+In 2D periodic space, simulate interacting ABPs.
