@@ -28,7 +28,8 @@ struct ptcl {
     int x;   // position
     int y;
     double theta; // direction of self-propulsion
-    double force;     // Entropy production for even parity
+    double force;     // force exerted to a particle
+    double EP;     //entropy production
 } ;
 
 
@@ -69,6 +70,7 @@ void init_random_config_host(const int ptclNum, const double Lxsize, const doubl
         hostPtcl[i].y = (int) (rand_unif() * (Lysize / dl));
         hostPtcl[i].theta = rand_unif() * two_ppi;
         hostPtcl[i].force = 0.0;
+        hostPtcl[i].EP = 0.0;
     } 
 }
 
@@ -95,6 +97,8 @@ __global__ void move(curandState *state, const double Lxsize, const double Lysiz
 
     double F0 = 0.5 * v / Dt;
     double rpot_loc = Lxsize - 40;
+
+    int Y_size = (int)(Lysize/dl); //Lysize in terms of grid coordiante
         
     if(tid<ptclNum){
         
@@ -184,23 +188,34 @@ __global__ void move(curandState *state, const double Lxsize, const double Lysiz
         if (rn < prl){
             devPtcl[tid].x = x - 1; //go left
             devPtcl[tid].force = fabs(F);
+            devPtcl[tid].EP += -(vx / Dt) * dl - (V_left - V);
         }
         else if (rn < prl + prr){
             devPtcl[tid].x = x + 1; //go right
             devPtcl[tid].force = fabs(F);
+            devPtcl[tid].EP += +(vx / Dt) * dl - (V_right - V);
         }
         else if (rn < prl + prr + pru){
-            devPtcl[tid].y = y + 1; //go up
+            devPtcl[tid].y = (y + 1)%Y_size; //go up
             devPtcl[tid].force = fabs(F);
+            devPtcl[tid].EP += +(vy / Dt) * dl;
         }
         else if (rn < prl + prr + pru + prd){
-            devPtcl[tid].y = y - 1; //go down
+            devPtcl[tid].y = (y - 1 + Y_size)%Y_size; //go down
             devPtcl[tid].force = fabs(F);
+            devPtcl[tid].EP += -(vy / Dt) * dl;
         }
         else {
             devPtcl[tid].force = fabs(F);
+            devPtcl[tid].EP += 0.0;
         }
     }
+}
+
+__global__ void reset(struct ptcl *devPtcl){
+    const int tid = threadIdx.x + blockDim.x * blockIdx.x ;
+    
+    devPtcl[tid].EP = 0.0;
 }
 
 

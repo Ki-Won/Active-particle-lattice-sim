@@ -6,7 +6,7 @@
 #include <string.h>
 #include <time.h>
 
-void save_current_state(struct ptcl *hostPtcl, const int ptclNum, char *filename);
+void save_current_state(struct ptcl *hostPtcl, const int ptclNum, char *filename, const double T);
 void read_state(struct ptcl *hostPtcl, int ptclNum, const char *filename);
 
 int main(int argc, char *argv[])
@@ -110,10 +110,13 @@ int main(int argc, char *argv[])
         // reptition start  
         
         start1 = clock();
+
+        double step = 0.0;
         
         for (int t = tmin; t < tmax + 1; t++){
         
             move<<<nBlocks, nThreads>>>(devStates, Lx_size, Ly_size, ptclNum, speed, dt, dl, Dt, Dr, devPtcl);
+            step += 1.0;
                 
             cudaDeviceSynchronize();
 
@@ -124,9 +127,13 @@ int main(int argc, char *argv[])
             if (t%((int)(100/dt))==0 && t>= 0){
                 printf("t_step=%d\n", t);
                 cudaMemcpy(hostPtcl, devPtcl, memSize, cudaMemcpyDeviceToHost);
+
+                reset<<<nBlocks, nThreads>>>(devPtcl);
+
                 char state_filename[200];
                 sprintf(state_filename, "%s/state_t_%d.txt", folder_name, t);
-                save_current_state(hostPtcl, ptclNum, state_filename);
+                save_current_state(hostPtcl, ptclNum, state_filename, step*dt);
+                step = 0.0;
                 
                 double real_t = (double)t * dt;
                 printf("T=%d\n", (int)real_t);
@@ -144,12 +151,12 @@ int main(int argc, char *argv[])
 
 
 
-void save_current_state(struct ptcl *hostPtcl, const int ptclNum, char *filename){
+void save_current_state(struct ptcl *hostPtcl, const int ptclNum, char *filename, const double T){
         FILE *fp = fopen(filename, "w");
         if (fp == NULL) {printf("Error opening the file %s", filename); return;}
         
         for (int i = 0; i < ptclNum; i++) {
-                fprintf(fp, "%d %d %lf %lf ", hostPtcl[i].x, hostPtcl[i].y, hostPtcl[i].theta, hostPtcl[i].force);
+                fprintf(fp, "%d %d %lf %lf %lf ", hostPtcl[i].x, hostPtcl[i].y, hostPtcl[i].theta, hostPtcl[i].force, hostPtcl[i].EP/T);
         }
         fprintf(fp, "\n");
         fclose(fp);
@@ -164,7 +171,7 @@ void read_state(struct ptcl *hostPtcl, int ptclNum, const char *filename) {
     }
 
     for (int i = 0; i < ptclNum; i++) {
-        if (fscanf(fp, "%d %d %lf %lf", &hostPtcl[i].x, &hostPtcl[i].y, &hostPtcl[i].theta, &hostPtcl[i].force) != 4) {
+        if (fscanf(fp, "%d %d %lf %lf %lf ", &hostPtcl[i].x, &hostPtcl[i].y, &hostPtcl[i].theta, &hostPtcl[i].force, &hostPtcl[i].EP) != 5) {
             printf("Error reading data at entry %d\n", i);
             break;
         }
